@@ -1,58 +1,58 @@
-# 🎵 Symphony — Volledig geautomatiseerde pipeline
+# 🎵 Symphony — Fully automated pipeline
 
-> Multi-agent coding pipeline. Volledig gratis. Jouw enige handmatige stap: een issue aanmaken.
+> Multi-agent coding pipeline. Fully free. Your only manual step: create an issue.
 
 ---
 
-## Automatiseringsgraad per laag
+## Automation Level By Layer
 
-| Laag | Component | Geautomatiseerd |
+| Layer | Component | Automated |
 |---|---|---|
-| Configuratie | `AGENTS.md` | ✅ Altijd beschikbaar |
-| Trigger | Auto-label workflow + automatische label setup | ✅ Volledig automatisch |
-| Orkestratie | GitHub Actions | ✅ Volledig automatisch |
-| Coding agent | `coding_agent.py` | ✅ Volledig automatisch |
-| Review agent | `review_agent.py` | ✅ Volledig automatisch |
-| Verfijning | `retry_agent.py` (max 3x) | ✅ Volledig automatisch |
-| Versiecontrole | Git + GitHub | ✅ Volledig automatisch |
-| Afsluiting | Auto-merge + issue done | ✅ Volledig automatisch |
+| Configuration | `AGENTS.md` | ✅ Always available |
+| Trigger | Auto-label workflow + automatic label setup | ✅ Fully automatic |
+| Orchestration | GitHub Actions | ✅ Fully automatic |
+| Coding agent | `coding_agent.py` | ✅ Fully automatic |
+| Review agent | `review_agent.py` | ✅ Fully automatic |
+| Refinement | `retry_agent.py` (max 3x) | ✅ Fully automatic |
+| Version control | Git + GitHub | ✅ Fully automatic |
+| Completion | Auto-merge + issue done | ✅ Fully automatic |
 
-**Jouw enige handmatige stap: een issue aanmaken.**
-
----
-
-## De volledige loop
-
-```
-Jij maakt issue aan
-        ↓
-Auto-label (direct of binnen 15 min)
-        ↓
-Coding Agent schrijft code + opent PR
-        ↓
-Review Agent beoordeelt diff
-        ↓
-    Geen issues? → Auto-merge → Issue done
-    Wel issues?  → Retry Agent (max 3x)
-                   → verbetert code
-                   → Review Agent opnieuw
-                   → na 3x: handmatige review
-```
+**Your only manual step: create an issue.**
 
 ---
 
-## Bestanden
+## The Full Loop
+
+```
+You create an issue
+        ↓
+Auto-label (immediately or within 15 minutes)
+        ↓
+Coding Agent writes code + opens PR
+        ↓
+Review Agent reviews diff
+        ↓
+    No issues?   → Auto-merge → Issue done
+    Has issues?  → Retry Agent (max 3x)
+                   → improves code
+                   → Review Agent again
+                   → after 3x: manual review
+```
+
+---
+
+## Files
 
 ```
 /
 ├── AGENTS.md                        ← Single source of truth
-├── coding_agent.py                  ← Schrijft code + opent PR
-├── review_agent.py                  ← Beoordeelt PR
-├── retry_agent.py                   ← Verbetert code na afwijzing
+├── coding_agent.py                  ← Writes code + opens PR
+├── review_agent.py                  ← Reviews PR
+├── retry_agent.py                   ← Improves code after rejection
 ├── .github/
 │   ├── workflows/
-│   │   ├── auto-label.yml           ← Labelt nieuwe issues automatisch
-│   │   ├── coding-agent.yml         ← Triggered op label agent-ready
+│   │   ├── auto-label.yml           ← Automatically labels new issues
+│   │   ├── coding-agent.yml         ← Triggered by agent-ready label
 │   │   └── review-agent.yml         ← Review + retry loop + auto-merge
 │   ├── ISSUE_TEMPLATE/
 │   │   └── agent-task.md
@@ -63,34 +63,34 @@ Review Agent beoordeelt diff
 
 ---
 
-## Eenmalige setup (5 minuten)
+## One-Time Setup (5 minutes)
 
-### 1. Groq API key aanmaken (gratis)
-Ga naar [console.groq.com](https://console.groq.com) en maak een API key aan.
+### 1. Create a Groq API key (free)
+Go to [console.groq.com](https://console.groq.com) and create an API key.
 
-### 2. Secret toevoegen
+### 2. Add the secret
 **Settings → Secrets and variables → Actions → New repository secret**
-Naam: `GROQ_API_KEY` · Waarde: jouw Groq key
+Name: `GROQ_API_KEY` · Value: your Groq key
 
-### 3. Actions rechten instellen
+### 3. Configure Actions permissions
 **Settings → Actions → General → Workflow permissions**
 - ✅ Read and write permissions
 - ✅ Allow GitHub Actions to create and approve pull requests
 
-### 4. AGENTS.md aanpassen
-Pas techstack, testcommando en projectstructuur aan op jouw project.
+### 4. Customize AGENTS.md
+Update the tech stack, test command, and project structure for your project.
 
-Labels worden automatisch aangemaakt of bijgewerkt door de workflows:
+Labels are created or updated automatically by the workflows:
 `agent-ready`, `in-progress`, `in-review`, `needs-work`, `symphony`, `symphony-approved`, `done`.
 
 ---
 
-## Codex VS Code — na 3 mislukte retries
+## Codex VS Code — After 3 Failed Retries
 
 ```
 Ctrl+Shift+P → 🎵 Symphony: Open PRs
-→ open geblokkeerde PR in VS Code
+→ open the blocked PR in VS Code
 → start Codex in Agent (Full Access)
-→ plak de review feedback
-→ push → Review Agent triggert opnieuw
+→ paste the review feedback
+→ push → Review Agent triggers again
 ```

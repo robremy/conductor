@@ -7,10 +7,10 @@ on:
   workflow_dispatch:
     inputs:
       pr_number:
-        description: "Pull request nummer"
+        description: "Pull request number"
         required: true
       head_ref:
-        description: "Branchnaam van de PR"
+        description: "PR branch name"
         required: true
 
 jobs:
@@ -22,7 +22,7 @@ jobs:
       issues: write
 
     steps:
-      - name: Issue sluiten na merge
+      - name: Close issue after merge
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_BODY: ${{ github.event.pull_request.body }}
@@ -32,7 +32,7 @@ jobs:
             gh issue edit "$ISSUE_NUM" --remove-label "in-progress" || true
             gh issue edit "$ISSUE_NUM" --remove-label "needs-work" || true
             gh issue edit "$ISSUE_NUM" --add-label "done" || true
-            gh issue close "$ISSUE_NUM" --comment "✅ Symphony heeft de gekoppelde PR gemerged." || true
+            gh issue close "$ISSUE_NUM" --comment "✅ Symphony merged the linked PR." || true
           fi
 
   review-agent:
@@ -69,7 +69,7 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Installeer dependencies
+      - name: Install dependencies
         run: pip install requests --quiet
 
       - name: Node.js setup
@@ -77,13 +77,13 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Installeer npm packages
+      - name: Install npm packages
         run: |
           if [ -f package.json ]; then npm ci --silent; fi
           if [ -f frontend/package.json ]; then cd frontend && npm ci --silent; fi
           if [ -f backend/package.json ]; then cd backend && npm ci --silent; fi
 
-      - name: Tests draaien
+      - name: Run tests
         run: |
           if [ -f package.json ]; then
             npm test && echo "TESTS_PASS=true" >> $GITHUB_ENV || echo "TESTS_PASS=false" >> $GITHUB_ENV
@@ -91,7 +91,7 @@ jobs:
             echo "TESTS_PASS=true" >> $GITHUB_ENV
           fi
 
-      - name: Review Agent uitvoeren
+      - name: Run Review Agent
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -112,13 +112,13 @@ jobs:
             --delete-branch \
             --subject "$(gh pr view $PR_NUMBER --json title -q .title)"
 
-      - name: Git configureren voor retry
+      - name: Configure Git for retry
         if: env.AUTO_MERGE == 'false'
         run: |
           git config user.name "Symphony Retry Agent 🔄"
           git config user.email "symphony@users.noreply.github.com"
 
-      - name: Retry Agent uitvoeren
+      - name: Run Retry Agent
         if: env.AUTO_MERGE == 'false'
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
@@ -127,12 +127,12 @@ jobs:
           PR_NUMBER: ${{ github.event_name == 'workflow_dispatch' && inputs.pr_number || github.event.pull_request.number }}
         run: python retry_agent.py
 
-      - name: Retry commit en push
+      - name: Retry commit and push
         if: env.AUTO_MERGE == 'false' && env.RETRY_OK == 'true'
         run: |
           git add --all
           if git diff --cached --quiet; then
-            echo "Geen wijzigingen na retry."
+            echo "No changes after retry."
             echo "RETRY_PUSHED=false" >> "$GITHUB_ENV"
             exit 0
           fi
@@ -140,7 +140,7 @@ jobs:
           git push origin HEAD
           echo "RETRY_PUSHED=true" >> "$GITHUB_ENV"
 
-      - name: Review opnieuw starten na retry
+      - name: Restart review after retry
         if: env.AUTO_MERGE == 'false' && env.RETRY_OK == 'true' && env.RETRY_PUSHED == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

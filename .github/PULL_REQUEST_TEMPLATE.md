@@ -1,14 +1,14 @@
-## Wat doet deze PR?
+## What does this PR do?
 
-## Hoe te testen?
+## How to test?
 
 1. 
 2. 
 
 ## Checklist
 
-- [ ] Tests toegevoegd of geüpdatet
-- [ ] Geen console.log of debug-code
-- [ ] Code volgt bestaande stijl
+- [ ] Tests added or updated
+- [ ] No console.log or debug code
+- [ ] Code follows existing style
 
 Closes #

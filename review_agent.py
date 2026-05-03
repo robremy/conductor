@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 Symphony — Review Agent
-Leest een PR diff, beoordeelt op basis van AGENTS.md review criteria,
-besluit of auto-merge toegestaan is.
+Reads a PR diff, reviews it using the AGENTS.md review criteria,
+and decides whether auto-merge is allowed.
 """
 
 import os
@@ -82,12 +82,12 @@ def call_groq(system_prompt, user_message, retries=5):
         r = requests.post(GROQ_URL, headers=headers, json=body)
         if r.status_code == 429:
             wait = 2 ** attempt
-            log(f"⏳ Groq rate limit — wacht {wait}s (poging {attempt + 1}/{retries})")
+            log(f"⏳ Groq rate limit — waiting {wait}s (attempt {attempt + 1}/{retries})")
             time.sleep(wait)
             continue
         r.raise_for_status()
         return r.json()["choices"][0]["message"]["content"].strip()
-    raise RuntimeError("Groq rate limit — max retries bereikt")
+    raise RuntimeError("Groq rate limit — max retries reached")
 
 def parse_json(raw):
     if "```" in raw:
@@ -113,9 +113,9 @@ def remove_pr_label(label):
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
-    log("🔍 Review Agent gestart")
+    log("🔍 Review Agent started")
 
-    # PR ophalen
+    # Fetch PR
     pr = gh_get(f"/repos/{REPO}/pulls/{PR_NUMBER}")
     pr_title = pr["title"]
     pr_body  = pr.get("body") or ""
@@ -124,13 +124,13 @@ def main():
 
     log(f"📋 PR #{PR_NUMBER}: {pr_title}")
 
-    # Diff ophalen (max 8000 tekens)
+    # Fetch diff (max 8000 characters)
     diff = gh_get_raw(f"/repos/{REPO}/pulls/{PR_NUMBER}")
     diff_truncated = diff[:8000]
     if len(diff) > 8000:
-        diff_truncated += "\n\n[diff ingekort — te lang]"
+        diff_truncated += "\n\n[diff truncated — too long]"
 
-    # Issue ophalen via PR body (zoek "Closes #NNN")
+    # Fetch issue via PR body (look for "Closes #NNN")
     issue_body = ""
     issue_title = ""
     import re
@@ -141,59 +141,59 @@ def main():
             issue = gh_get(f"/repos/{REPO}/issues/{issue_num}")
             issue_title = issue["title"]
             issue_body  = issue.get("body") or ""
-            log(f"🔗 Gekoppeld issue: #{issue_num} — {issue_title}")
+            log(f"🔗 Linked issue: #{issue_num} — {issue_title}")
         except: pass
 
-    # AGENTS.md lezen
+    # Read AGENTS.md
     agents_md = read_file("AGENTS.md")
 
-    system_prompt = f"""Je bent Symphony Review Agent.
-Je beoordeelt een Pull Request op basis van de review criteria in AGENTS.md.
+    system_prompt = f"""You are the Symphony Review Agent.
+You review a Pull Request based on the review criteria in AGENTS.md.
 
-## AGENTS.md (review criteria sectie is het belangrijkst)
+## AGENTS.md (the review criteria section is the most important)
 {agents_md}
 
-## Outputformaat
-Geef UITSLUITEND een geldig JSON-object terug. Geen markdown, geen uitleg.
+## Output Format
+Return ONLY a valid JSON object. No markdown, no explanation.
 
 {{
   "blocking_issues": [
-    "Beschrijving van blokkerend probleem (leeg als geen)"
+    "Description of blocking problem (empty if none)"
   ],
   "non_blocking_remarks": [
-    "Niet-blokkerende opmerking (leeg als geen)"
+    "Non-blocking remark (empty if none)"
   ],
   "auto_merge": true,
-  "summary": "Korte samenvatting van de review in het Nederlands",
-  "verdict": "APPROVED" of "CHANGES_REQUESTED"
+  "summary": "Brief review summary in English",
+  "verdict": "APPROVED" or "CHANGES_REQUESTED"
 }}
 
-Regels:
-- auto_merge is true ALLEEN als er geen blokkerende issues zijn
-- Wees streng op falende tests, ontbrekende tests en bugs
-- Wees mild op stijlvoorkeuren en kleine optimalisaties
-- Als de diff te kort is voor de scope van het issue, is dat een blokkerend issue"""
+Rules:
+- auto_merge is true ONLY when there are no blocking issues
+- Be strict about failing tests, missing tests, and bugs
+- Be mild about style preferences and small optimizations
+- If the diff is too small for the issue scope, that is a blocking issue"""
 
-    user_message = f"""Review deze Pull Request:
+    user_message = f"""Review this Pull Request:
 
 **PR #{PR_NUMBER}: {pr_title}**
 
-**Origineel issue:**
+**Original issue:**
 {issue_title}
 {issue_body}
 
-**PR beschrijving:**
+**PR description:**
 {pr_body}
 
 **CI tests:**
-{"Geslaagd" if TESTS_PASS else "Mislukt"}
+{"Passed" if TESTS_PASS else "Failed"}
 
 **Diff:**
 ```diff
 {diff_truncated}
 ```
 
-Beoordeel op basis van AGENTS.md review criteria en lever het JSON-object op."""
+Review based on the AGENTS.md review criteria and return the JSON object."""
 
     log(f"🤖 Groq aanroepen ({GROQ_MODEL})...")
     raw = call_groq(system_prompt, user_message)
@@ -201,9 +201,9 @@ Beoordeel op basis van AGENTS.md review criteria en lever het JSON-object op."""
     try:
         result = parse_json(raw)
     except Exception as e:
-        log(f"❌ JSON parse mislukt: {e}")
+        log(f"❌ JSON parse failed: {e}")
         gh_post(f"/repos/{REPO}/issues/{PR_NUMBER}/comments", {
-            "body": f"⚠️ Review Agent kon output niet parsen. Handmatige review vereist.\n\n```\n{raw[:500]}\n```"
+            "body": f"⚠️ Review Agent could not parse the output. Manual review required.\n\n```\n{raw[:500]}\n```"
         })
         set_gha_env("AUTO_MERGE", "false")
         raise SystemExit(1)
@@ -215,45 +215,45 @@ Beoordeel op basis van AGENTS.md review criteria en lever het JSON-object op."""
     verdict     = result.get("verdict", "CHANGES_REQUESTED")
 
     if not TESTS_PASS:
-        blocking.append("De CI-tests zijn mislukt in de GitHub Actions run.")
+        blocking.append("The CI tests failed in the GitHub Actions run.")
         auto_merge = False
         verdict = "CHANGES_REQUESTED"
 
     log(f"📊 Verdict: {verdict}")
     log(f"🚦 Auto-merge: {auto_merge}")
-    log(f"🔴 Blokkerende issues: {len(blocking)}")
-    log(f"🟡 Opmerkingen: {len(non_blocking)}")
+    log(f"🔴 Blocking issues: {len(blocking)}")
+    log(f"🟡 Remarks: {len(non_blocking)}")
 
-    # PR comment samenstellen
+    # Compose PR comment
     comment_lines = [
         f"## 🎵 Symphony Review Agent\n",
         f"**Verdict:** {'✅ APPROVED' if verdict == 'APPROVED' else '❌ CHANGES REQUESTED'}\n",
-        f"**Auto-merge:** {'✅ Ja' if auto_merge else '❌ Nee'}\n",
-        f"### Samenvatting\n{summary}\n",
+        f"**Auto-merge:** {'✅ Yes' if auto_merge else '❌ No'}\n",
+        f"### Summary\n{summary}\n",
     ]
 
     if blocking:
-        comment_lines.append("### 🔴 Blokkerende issues\n")
+        comment_lines.append("### 🔴 Blocking Issues\n")
         for b in blocking:
             comment_lines.append(f"- {b}")
         comment_lines.append("")
 
     if non_blocking:
-        comment_lines.append("### 🟡 Opmerkingen (niet-blokkerend)\n")
+        comment_lines.append("### 🟡 Remarks (non-blocking)\n")
         for r in non_blocking:
             comment_lines.append(f"- {r}")
         comment_lines.append("")
 
     if auto_merge:
-        comment_lines.append("---\n✅ Geen blokkerende issues gevonden. PR wordt automatisch gemerged.")
+        comment_lines.append("---\n✅ No blocking issues found. PR will be merged automatically.")
     else:
-        comment_lines.append("---\n❌ Blokkerende issues gevonden. Auto-merge uitgesteld. Los de issues op en push een update.")
+        comment_lines.append("---\n❌ Blocking issues found. Auto-merge delayed. Fix the issues and push an update.")
 
     gh_post(f"/repos/{REPO}/issues/{PR_NUMBER}/comments", {
         "body": "\n".join(comment_lines)
     })
 
-    # Labels updaten
+    # Update labels
     if auto_merge:
         add_pr_label("symphony-approved")
         remove_pr_label("needs-work")
@@ -262,7 +262,7 @@ Beoordeel op basis van AGENTS.md review criteria en lever het JSON-object op."""
         remove_pr_label("symphony-approved")
 
     set_gha_env("AUTO_MERGE", "true" if auto_merge else "false")
-    log("✅ Review Agent klaar")
+    log("✅ Review Agent done")
 
 if __name__ == "__main__":
     main()

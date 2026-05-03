@@ -1,125 +1,125 @@
 # AGENTS.md
-# Single source of truth voor coding agent én review agent.
-# Wordt automatisch gelezen door beide GitHub Actions workflows.
+# Single source of truth for the coding agent and review agent.
+# Automatically read by both GitHub Actions workflows.
 
 ---
 
 ## Project
 
-Full-stack web applicatie.
+Full-stack web application.
 
 ## Techstack
 
-<!-- Pas aan op jouw project -->
+<!-- Customize for your project -->
 - **Frontend**: React / Vue / Svelte
 - **Backend**: Node/Express / FastAPI / Laravel
 - **Database**: PostgreSQL / MongoDB
 - **Tests**: Vitest / Jest / Pytest
 - **Package manager**: npm / pnpm / pip
 
-## Projectstructuur
+## Project Structure
 
 ```
 /
 ├── frontend/          # Client-side code
 ├── backend/           # Server-side code
-├── shared/            # Gedeelde types en utilities
+├── shared/            # Shared types and utilities
 ├── tests/             # Tests
 └── .github/
     └── workflows/     # Symphony agent workflows
 ```
 
-## Testcommando
+## Test Command
 
 ```bash
 npm test
 ```
 
-<!-- Pas aan: npm test / pnpm test / pytest / etc. -->
+<!-- Customize: npm test / pnpm test / pytest / etc. -->
 
 ---
 
-## Werkwijze coding agent
+## Coding Agent Workflow
 
 ### Branch
 
 ```
-feat/GH-{nummer}-{beschrijving}
-fix/GH-{nummer}-{beschrijving}
-docs/GH-{nummer}-{beschrijving}
-test/GH-{nummer}-{beschrijving}
+feat/GH-{number}-{description}
+fix/GH-{number}-{description}
+docs/GH-{number}-{description}
+test/GH-{number}-{description}
 ```
 
-### Volgorde van implementatie
+### Implementation Order
 
 1. Backend (routes, services, database)
 2. Frontend (components, state, UI)
 3. Tests
-4. Documentatie indien van toepassing
+4. Documentation when applicable
 
-### Codeerregels
+### Coding Rules
 
-- Alleen bestanden wijzigen die nodig zijn voor dit issue
-- Bestaande codestijl en naamgeving volgen
-- Geen nieuwe dependencies zonder expliciete reden in het issue
-- Geen console.log of debug-code
-- Geen refactoring buiten de scope van het issue
+- Only change files needed for this issue
+- Follow existing code style and naming
+- Do not add new dependencies without an explicit reason in the issue
+- No console.log or debug code
+- No refactoring outside the scope of the issue
 
-### Commitformat
+### Commit Format
 
 ```
-{type}(GH-{nummer}): {beschrijving}
+{type}(GH-{number}): {description}
 
-- Wat er gedaan is (bullet)
-- Nog een bullet indien nodig
-- Closes #{nummer}
+- What was done (bullet)
+- Another bullet if needed
+- Closes #{number}
 ```
 
 Types: `feat` `fix` `refactor` `docs` `test` `chore`
 
-### PR-beschrijving bevat altijd
+### PR Description Always Includes
 
-- Wat doet deze PR?
-- Hoe te testen?
-- `Closes #{nummer}`
+- What does this PR do?
+- How to test?
+- `Closes #{number}`
 
-### Definitie van klaar
+### Definition Of Done
 
-- [ ] Functionaliteit werkt zoals beschreven in het issue
-- [ ] Alle bestaande tests slagen
-- [ ] Nieuwe tests geschreven voor nieuwe logica
-- [ ] Geen console.log of debug-code
-- [ ] PR geopend en gelinkt aan issue
+- [ ] Functionality works as described in the issue
+- [ ] All existing tests pass
+- [ ] New tests written for new logic
+- [ ] No console.log or debug code
+- [ ] PR opened and linked to the issue
 
 ---
 
 ## Review criteria
 
-Deze sectie wordt gebruikt door de review agent om te beoordelen of een PR gemerged mag worden.
+This section is used by the review agent to decide whether a PR can be merged.
 
-### Blokkerende issues (geen auto-merge)
+### Blocking Issues (No Auto-Merge)
 
-- Falende tests
-- Ontbrekende tests voor nieuwe logica
-- Functionaliteit die niet overeenkomt met het issue
-- Wijzigingen buiten de scope van het issue
-- Console.log of debug-code aanwezig
-- Nieuwe dependencies zonder reden
-- Syntax errors of evidente bugs
+- Failing tests
+- Missing tests for new logic
+- Functionality that does not match the issue
+- Changes outside the scope of the issue
+- Console.log or debug code present
+- New dependencies without a reason
+- Syntax errors or obvious bugs
 - Merge conflicts
 
-### Niet-blokkerende opmerkingen (auto-merge toegestaan)
+### Non-Blocking Remarks (Auto-Merge Allowed)
 
-- Stijlvoorkeur (naamgeving, formatting)
-- Suggesties voor betere implementatie
-- Ontbrekende documentatie voor kleine wijzigingen
-- Kleine optimalisaties
+- Style preference (naming, formatting)
+- Suggestions for a better implementation
+- Missing documentation for small changes
+- Small optimizations
 
-### Auto-merge voorwaarden
+### Auto-Merge Conditions
 
-Alle van het volgende moet waar zijn:
+All of the following must be true:
 
-1. Geen blokkerende issues gevonden door review agent
-2. CI-checks slagen (tests groen)
-3. Branch heeft geen conflicts met main
-4. PR is aangemaakt door Symphony coding agent
+1. No blocking issues found by the review agent
+2. CI checks pass (tests green)
+3. Branch has no conflicts with main
+4. PR was created by the Symphony coding agent

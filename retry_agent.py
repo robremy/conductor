@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
 Symphony — Retry Agent
-Wordt aangeroepen als de Review Agent een PR blokkeert.
-Leest de review feedback en verbetert de implementatie.
-Max 3 retry pogingen per issue.
+Runs when the Review Agent blocks a PR.
+Reads the review feedback and improves the implementation.
+Max 3 retry attempts per issue.
 """
 
 import os
@@ -56,7 +56,7 @@ def read_file(path):
     except FileNotFoundError: return ""
 
 def get_current_files():
-    """Lees alle relevante projectbestanden voor context."""
+    """Read all relevant project files for context."""
     files = {}
     paths = []
     for path in Path(".").rglob("*"):
@@ -71,18 +71,18 @@ def get_current_files():
         try:
             with open(path, encoding="utf-8") as f:
                 content = f.read()
-                if len(content) < 5000:  # Alleen kleine bestanden
+                if len(content) < 5000:  # Only small files
                     files[path.as_posix()] = content
         except: pass
     return files
 
 def get_retry_count():
-    """Tel hoeveel retry-comments er al op de PR staan."""
+    """Count how many retry comments are already on the PR."""
     comments = gh_get(f"/repos/{REPO}/issues/{PR_NUMBER}/comments")
     return sum(1 for c in comments if "Symphony Retry Agent" in c.get("body", ""))
 
 def get_review_feedback():
-    """Haal de review feedback op uit de PR comments."""
+    """Fetch review feedback from PR comments."""
     comments = gh_get(f"/repos/{REPO}/issues/{PR_NUMBER}/comments")
     for comment in reversed(comments):
         body = comment.get("body", "")
@@ -109,12 +109,12 @@ def call_groq(system_prompt, user_message, retries=5):
         r = requests.post(GROQ_URL, headers=headers, json=body)
         if r.status_code == 429:
             wait = 2 ** attempt
-            log(f"⏳ Groq rate limit — wacht {wait}s (poging {attempt + 1}/{retries})")
+            log(f"⏳ Groq rate limit — waiting {wait}s (attempt {attempt + 1}/{retries})")
             time.sleep(wait)
             continue
         r.raise_for_status()
         return r.json()["choices"][0]["message"]["content"].strip()
-    raise RuntimeError("Groq rate limit — max retries bereikt")
+    raise RuntimeError("Groq rate limit — max retries reached")
 
 def parse_json(raw):
     if "```" in raw:
@@ -127,9 +127,9 @@ def parse_json(raw):
 def safe_repo_path(raw_path):
     path = Path(str(raw_path).strip().lstrip("/\\"))
     if not path.parts or path.is_absolute() or ".." in path.parts:
-        raise ValueError(f"Ongeldig pad van agent-output: {raw_path}")
+        raise ValueError(f"Invalid path from agent output: {raw_path}")
     if path.parts[0] in PROTECTED_DIRS:
-        raise ValueError(f"Beschermd pad mag niet worden gewijzigd: {raw_path}")
+        raise ValueError(f"Protected path may not be changed: {raw_path}")
     return path
 
 def write_files(files):
@@ -144,34 +144,34 @@ def run_tests(command):
     log(f"🧪 Tests: {command}")
     r = subprocess.run(command, shell=True, capture_output=True, text=True)
     if r.returncode == 0:
-        log("  ✓ Tests geslaagd")
+        log("  ✓ Tests passed")
         return True
-    log(f"  ✗ Tests mislukt:\n{r.stdout[-500:]}")
+    log(f"  ✗ Tests failed:\n{r.stdout[-500:]}")
     return False
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
-    log("🔄 Retry Agent gestart")
+    log("🔄 Retry Agent started")
 
-    # Retry count checken
+    # Check retry count
     retry_count = get_retry_count()
     if retry_count >= MAX_RETRIES:
-        log(f"❌ Maximum retries ({MAX_RETRIES}) bereikt")
+        log(f"❌ Maximum retries ({MAX_RETRIES}) reached")
         gh_post(f"/repos/{REPO}/issues/{PR_NUMBER}/comments", {
-            "body": f"⛔ **Symphony Retry Agent**: Maximum van {MAX_RETRIES} retries bereikt.\n\nHandmatige review vereist."
+            "body": f"⛔ **Symphony Retry Agent**: Maximum of {MAX_RETRIES} retries reached.\n\nManual review required."
         })
         set_gha_env("RETRY_OK", "false")
         raise SystemExit(0)
 
-    log(f"🔄 Retry poging {retry_count + 1}/{MAX_RETRIES}")
+    log(f"🔄 Retry attempt {retry_count + 1}/{MAX_RETRIES}")
 
-    # PR ophalen
+    # Fetch PR
     pr = gh_get(f"/repos/{REPO}/pulls/{PR_NUMBER}")
     pr_title = pr["title"]
     pr_body  = pr.get("body") or ""
 
-    # Issue ophalen
+    # Fetch issue
     issue_title = ""
     issue_body  = ""
     match = re.search(r"Closes #(\d+)", pr_body, re.IGNORECASE)
@@ -182,60 +182,60 @@ def main():
             issue_body  = issue.get("body") or ""
         except: pass
 
-    # Review feedback ophalen
+    # Fetch review feedback
     review_feedback = get_review_feedback()
     if not review_feedback:
-        log("Geen review feedback gevonden — skip")
+        log("No review feedback found — skip")
         set_gha_env("RETRY_OK", "false")
         raise SystemExit(0)
 
     log(f"📋 PR #{PR_NUMBER}: {pr_title}")
 
-    # Huidige bestanden lezen
+    # Read current files
     current_files = get_current_files()
     agents_md = read_file("AGENTS.md")
 
-    system_prompt = f"""Je bent Symphony Retry Agent.
-Je verbetert een bestaande implementatie op basis van review feedback.
+    system_prompt = f"""You are the Symphony Retry Agent.
+You improve an existing implementation based on review feedback.
 
 ## AGENTS.md
 {agents_md}
 
-## Outputformaat
-Geef UITSLUITEND een geldig JSON-object terug. Geen markdown, geen uitleg.
+## Output Format
+Return ONLY a valid JSON object. No markdown, no explanation.
 
 {{
-  "analysis": "Wat er fout was en hoe je het oplost",
+  "analysis": "What was wrong and how you fixed it",
   "files": [
-    {{"path": "pad/naar/bestand.js", "content": "volledige verbeterde bestandsinhoud"}}
+    {{"path": "path/to/file.js", "content": "complete improved file contents"}}
   ],
   "test_command": "npm test",
-  "commit_message": "fix: adres review feedback\\n\\n- Wat opgelost\\n- Closes #NNN"
+  "commit_message": "fix: address review feedback\\n\\n- What was fixed\\n- Closes #NNN"
 }}
 
-Regels:
-- Schrijf VOLLEDIGE bestandsinhoud, ook voor ongewijzigde bestanden
-- Los ALLE blokkerende issues op uit de review
-- Schrijf tests voor ontbrekende coverage
-- Geen console.log of debug-code"""
+Rules:
+- Write COMPLETE file contents, including unchanged files
+- Fix ALL blocking issues from the review
+- Write tests for missing coverage
+- No console.log or debug code"""
 
     current_files_str = "\n\n".join([
         f"### {path}\n```\n{content}\n```"
         for path, content in current_files.items()
     ])
 
-    user_message = f"""Verbeter deze implementatie op basis van de review feedback.
+    user_message = f"""Improve this implementation based on the review feedback.
 
 **Issue:** {issue_title}
 {issue_body}
 
-**Huidige bestanden:**
+**Current files:**
 {current_files_str}
 
 **Review feedback:**
 {review_feedback}
 
-Los alle blokkerende issues op en lever het JSON-object op."""
+Fix all blocking issues and return the JSON object."""
 
     log(f"🤖 Groq aanroepen ({GROQ_MODEL})...")
     raw = call_groq(system_prompt, user_message)
@@ -243,7 +243,7 @@ Los alle blokkerende issues op en lever het JSON-object op."""
     try:
         result = parse_json(raw)
     except Exception as e:
-        log(f"❌ JSON parse mislukt: {e}")
+        log(f"❌ JSON parse failed: {e}")
         set_gha_env("RETRY_OK", "false")
         raise SystemExit(1)
 
@@ -251,20 +251,20 @@ Los alle blokkerende issues op en lever het JSON-object op."""
     write_files(result.get("files", []))
     tests_ok = run_tests(result.get("test_command"))
 
-    commit_msg = result.get("commit_message", f"fix: adres review feedback (retry {retry_count + 1})")
+    commit_msg = result.get("commit_message", f"fix: address review feedback (retry {retry_count + 1})")
     with open("_commit_message.txt", "w", encoding="utf-8") as f: f.write(commit_msg)
 
     set_gha_env("RETRY_OK", "true" if tests_ok else "false")
 
-    # Comment op PR
+    # Comment on PR
     gh_post(f"/repos/{REPO}/issues/{PR_NUMBER}/comments", {
-        "body": f"🔄 **Symphony Retry Agent** (poging {retry_count + 1}/{MAX_RETRIES})\n\n"
-                f"**Analyse:** {result.get('analysis', '—')}\n\n"
-                f"**Tests:** {'✅ geslaagd' if tests_ok else '⚠️ mislukt'}\n\n"
-                f"Review Agent wordt opnieuw getriggerd."
+        "body": f"🔄 **Symphony Retry Agent** (attempt {retry_count + 1}/{MAX_RETRIES})\n\n"
+                f"**Analysis:** {result.get('analysis', '—')}\n\n"
+                f"**Tests:** {'✅ passed' if tests_ok else '⚠️ failed'}\n\n"
+                f"Review Agent will be triggered again."
     })
 
-    log("✅ Retry Agent klaar")
+    log("✅ Retry Agent done")
 
 if __name__ == "__main__":
     main()

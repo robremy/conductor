@@ -49,7 +49,7 @@
     {
       "id": "issueNumber",
       "type": "promptString",
-      "description": "Issue nummer (bijv. 42)",
+      "description": "Issue number (for example 42)",
       "default": ""
     }
   ]

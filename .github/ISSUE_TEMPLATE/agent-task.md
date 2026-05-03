@@ -1,14 +1,14 @@
 ---
 name: 🤖 Agent Task
-about: Issue voor Symphony Agent
+about: Issue for Symphony Agent
 title: "[TASK] "
 labels: ""
 assignees: ""
 ---
 
-## Beschrijving
+## Description
 
-<!-- Wat moet er gebouwd, gefixt of veranderd worden? -->
+<!-- What should be built, fixed, or changed? -->
 
 ## Requirements
 
@@ -16,19 +16,19 @@ assignees: ""
 - 
 - 
 
-## Acceptatiecriteria
+## Acceptance Criteria
 
 - [ ] 
 - [ ] 
 
-## Betrokken bestanden (optioneel)
+## Related Files (optional)
 
-<!-- Welke bestanden zijn waarschijnlijk relevant? -->
+<!-- Which files are likely relevant? -->
 
-## Notities (optioneel)
+## Notes (optional)
 
-<!-- Extra context voor de agent -->
+<!-- Extra context for the agent -->
 
 ---
 
-> Voeg label **`agent-ready`** toe om Symphony te starten.
+> Add the **`agent-ready`** label to start Symphony.

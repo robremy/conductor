@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Symphony — Coding Agent
-Leest een GitHub Issue, schrijft de implementatie, opent een PR.
+Reads a GitHub Issue, writes the implementation, and opens a PR.
 """
 
 import os
@@ -89,12 +89,12 @@ def call_groq(system_prompt, user_message, retries=5):
         r = requests.post(GROQ_URL, headers=headers, json=body)
         if r.status_code == 429:
             wait = 2 ** attempt  # 1s, 2s, 4s, 8s, 16s
-            log(f"⏳ Groq rate limit — wacht {wait}s (poging {attempt + 1}/{retries})")
+            log(f"⏳ Groq rate limit — waiting {wait}s (attempt {attempt + 1}/{retries})")
             time.sleep(wait)
             continue
         r.raise_for_status()
         return r.json()["choices"][0]["message"]["content"].strip()
-    raise RuntimeError("Groq rate limit — max retries bereikt")
+    raise RuntimeError("Groq rate limit — max retries reached")
 
 def parse_json(raw):
     if "```" in raw:
@@ -107,9 +107,9 @@ def parse_json(raw):
 def safe_repo_path(raw_path):
     path = Path(str(raw_path).strip().lstrip("/\\"))
     if not path.parts or path.is_absolute() or ".." in path.parts:
-        raise ValueError(f"Ongeldig pad van agent-output: {raw_path}")
+        raise ValueError(f"Invalid path from agent output: {raw_path}")
     if path.parts[0] in PROTECTED_DIRS:
-        raise ValueError(f"Beschermd pad mag niet worden gewijzigd: {raw_path}")
+        raise ValueError(f"Protected path may not be changed: {raw_path}")
     return path
 
 def write_files(files):
@@ -124,64 +124,64 @@ def run_tests(command):
     log(f"🧪 Tests: {command}")
     r = subprocess.run(command, shell=True, capture_output=True, text=True)
     if r.returncode == 0:
-        log("  ✓ Tests geslaagd")
+        log("  ✓ Tests passed")
         return True
-    log(f"  ✗ Tests mislukt:\n{r.stdout[-1000:]}\n{r.stderr[-500:]}")
+    log(f"  ✗ Tests failed:\n{r.stdout[-1000:]}\n{r.stderr[-500:]}")
     return False
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
-    log("🎵 Coding Agent gestart")
+    log("🎵 Coding Agent started")
 
     issue  = gh_get(f"/repos/{REPO}/issues/{ISSUE_NUMBER}")
     title  = issue["title"]
-    body   = issue.get("body") or "(geen beschrijving)"
+    body   = issue.get("body") or "(no description)"
     branch = f"feat/GH-{ISSUE_NUMBER}-{slugify(title)}"
 
     log(f"📋 Issue #{ISSUE_NUMBER}: {title}")
-    comment(f"🎵 **Symphony Coding Agent gestart**\n\nVerwerkt issue `#{ISSUE_NUMBER}`.\nIk open straks een PR zodra de implementatie klaar is.")
+    comment(f"🎵 **Symphony Coding Agent started**\n\nProcessing issue `#{ISSUE_NUMBER}`.\nI will open a PR when the implementation is ready.")
 
     agents_md = read_file("AGENTS.md")
     structure = get_repo_structure()
 
-    system_prompt = f"""Je bent Symphony, een autonome coding agent.
-Je implementeert GitHub Issues volledig en zelfstandig.
+    system_prompt = f"""You are Symphony, an autonomous coding agent.
+You implement GitHub Issues fully and independently.
 
-## Project instructies (AGENTS.md)
+## Project Instructions (AGENTS.md)
 {agents_md}
 
-## Repository structuur
+## Repository Structure
 {structure}
 
-## Outputformaat
-Geef UITSLUITEND een geldig JSON-object terug. Geen markdown, geen uitleg, geen backticks.
+## Output Format
+Return ONLY a valid JSON object. No markdown, no explanation, no backticks.
 
 {{
-  "analysis": "Korte analyse van wat gebouwd moet worden",
+  "analysis": "Brief analysis of what needs to be built",
   "files": [
-    {{"path": "pad/naar/bestand.js", "content": "volledige bestandsinhoud"}}
+    {{"path": "path/to/file.js", "content": "complete file contents"}}
   ],
   "test_command": "npm test",
-  "commit_message": "feat(GH-{ISSUE_NUMBER}): beschrijving\\n\\n- Wat gedaan\\n- Closes #{ISSUE_NUMBER}",
-  "pr_title": "feat(GH-{ISSUE_NUMBER}): beschrijving",
-  "pr_body": "## Wat doet deze PR?\\n...\\n\\n## Testen\\n...\\n\\nCloses #{ISSUE_NUMBER}"
+  "commit_message": "feat(GH-{ISSUE_NUMBER}): description\\n\\n- What changed\\n- Closes #{ISSUE_NUMBER}",
+  "pr_title": "feat(GH-{ISSUE_NUMBER}): description",
+  "pr_body": "## What does this PR do?\\n...\\n\\n## Testing\\n...\\n\\nCloses #{ISSUE_NUMBER}"
 }}
 
-Regels:
-- Schrijf VOLLEDIGE bestandsinhoud
-- Volg de werkwijze in AGENTS.md exact
-- Verander alleen bestanden die nodig zijn
-- Schrijf tests voor nieuwe logica
-- Geen console.log of debug-code"""
+Rules:
+- Write COMPLETE file contents
+- Follow the workflow in AGENTS.md exactly
+- Only change files that are needed
+- Write tests for new logic
+- No console.log or debug code"""
 
-    user_message = f"""Implementeer GitHub Issue #{ISSUE_NUMBER} volledig.
+    user_message = f"""Implement GitHub Issue #{ISSUE_NUMBER} fully.
 
 **{title}**
 
 {body}
 
-Lever het JSON-object op."""
+Return the JSON object."""
 
     log(f"🤖 Groq aanroepen ({GROQ_MODEL})...")
     raw = call_groq(system_prompt, user_message)
@@ -189,8 +189,8 @@ Lever het JSON-object op."""
     try:
         result = parse_json(raw)
     except Exception as e:
-        log(f"❌ JSON parse mislukt: {e}")
-        comment(f"❌ Coding Agent kon output niet parsen.\n\n```\n{raw[:500]}\n```")
+        log(f"❌ JSON parse failed: {e}")
+        comment(f"❌ Coding Agent could not parse the output.\n\n```\n{raw[:500]}\n```")
         raise SystemExit(1)
 
     log(f"🔍 {result.get('analysis', '—')}")
@@ -201,10 +201,10 @@ Lever het JSON-object op."""
 
     commit_msg = result.get("commit_message", f"feat(GH-{ISSUE_NUMBER}): {title}\n\nCloses #{ISSUE_NUMBER}")
     pr_title   = result.get("pr_title",   f"feat(GH-{ISSUE_NUMBER}): {title}")
-    pr_body    = result.get("pr_body",    f"Implementatie van #{ISSUE_NUMBER}.\n\nCloses #{ISSUE_NUMBER}")
+    pr_body    = result.get("pr_body",    f"Implementation of #{ISSUE_NUMBER}.\n\nCloses #{ISSUE_NUMBER}")
 
     if not tests_ok:
-        pr_body += "\n\n> ⚠️ Tests zijn mislukt tijdens de agent-run. Review zorgvuldig."
+        pr_body += "\n\n> ⚠️ Tests failed during the agent run. Review carefully."
 
     with open("_commit_message.txt", "w", encoding="utf-8") as f: f.write(commit_msg)
     with open("_pr_title.txt",       "w", encoding="utf-8") as f: f.write(pr_title)
@@ -214,7 +214,7 @@ Lever het JSON-object op."""
     set_gha_env("TESTS_OK", "true" if tests_ok else "false")
 
     log(f"🌿 Branch: {branch}")
-    log("✅ Coding Agent klaar")
+    log("✅ Coding Agent done")
 
 if __name__ == "__main__":
     main()

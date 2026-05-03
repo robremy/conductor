@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       issue_number:
-        description: "Issue nummer"
+        description: "Issue number"
         required: true
 
 jobs:
@@ -35,7 +35,7 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Installeer dependencies
+      - name: Install dependencies
         run: pip install requests --quiet
 
       - name: Node.js setup
@@ -43,7 +43,7 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Symphony labels klaarzetten
+      - name: Prepare Symphony labels
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
@@ -59,21 +59,21 @@ jobs:
             fi
           }
 
-          ensure_label "agent-ready" "22c55e" "Klaar voor Symphony coding agent"
-          ensure_label "in-progress" "f59e0b" "Symphony werkt aan dit issue"
-          ensure_label "in-review" "8b5cf6" "Symphony PR wordt beoordeeld"
-          ensure_label "needs-work" "ef4444" "Symphony vond blokkerende review feedback"
-          ensure_label "symphony" "3b82f6" "Aangemaakt door Symphony"
-          ensure_label "symphony-approved" "22c55e" "Goedgekeurd door Symphony review agent"
-          ensure_label "done" "6b7280" "Afgerond door Symphony"
+          ensure_label "agent-ready" "22c55e" "Ready for the Symphony coding agent"
+          ensure_label "in-progress" "f59e0b" "Symphony is working on this issue"
+          ensure_label "in-review" "8b5cf6" "Symphony PR is under review"
+          ensure_label "needs-work" "ef4444" "Symphony found blocking review feedback"
+          ensure_label "symphony" "3b82f6" "Created by Symphony"
+          ensure_label "symphony-approved" "22c55e" "Approved by the Symphony review agent"
+          ensure_label "done" "6b7280" "Completed by Symphony"
 
-      - name: Installeer npm packages
+      - name: Install npm packages
         run: |
           if [ -f package.json ]; then npm ci --silent; fi
           if [ -f frontend/package.json ]; then cd frontend && npm ci --silent; fi
           if [ -f backend/package.json ]; then cd backend && npm ci --silent; fi
 
-      - name: Coding Agent uitvoeren
+      - name: Run Coding Agent
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -81,17 +81,17 @@ jobs:
           ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
         run: python coding_agent.py
 
-      - name: Git configureren
+      - name: Configure Git
         run: |
           git config user.name "Symphony Coding Agent 🎵"
           git config user.email "symphony@users.noreply.github.com"
 
-      - name: Commit en push
+      - name: Commit and push
         run: |
           git checkout -b "$BRANCH_NAME"
           git add --all
           if git diff --cached --quiet; then
-            echo "Geen wijzigingen om te committen."
+            echo "No changes to commit."
             echo "HAS_CHANGES=false" >> "$GITHUB_ENV"
             exit 0
           fi
@@ -99,7 +99,7 @@ jobs:
           git push origin "$BRANCH_NAME"
           echo "HAS_CHANGES=true" >> "$GITHUB_ENV"
 
-      - name: PR openen
+      - name: Open PR
         if: env.HAS_CHANGES == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -113,7 +113,7 @@ jobs:
           PR_NUMBER=$(gh pr view "$PR_URL" --json number -q .number)
           echo "PR_NUMBER=$PR_NUMBER" >> "$GITHUB_ENV"
 
-      - name: Review workflow starten
+      - name: Start review workflow
         if: env.HAS_CHANGES == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -122,7 +122,7 @@ jobs:
             -f pr_number="$PR_NUMBER" \
             -f head_ref="$BRANCH_NAME"
 
-      - name: Issue labels updaten
+      - name: Update issue labels
         if: env.HAS_CHANGES == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
