@@ -1,4 +1,4 @@
-name: 🔍 Symphony — Review Agent + Auto-merge + Retry
+name: 🔍 Conductor — Review Agent + Auto-merge + Retry
 
 on:
   pull_request:
@@ -32,7 +32,7 @@ jobs:
             gh issue edit "$ISSUE_NUM" --remove-label "in-progress" || true
             gh issue edit "$ISSUE_NUM" --remove-label "needs-work" || true
             gh issue edit "$ISSUE_NUM" --add-label "done" || true
-            gh issue close "$ISSUE_NUM" --comment "✅ Symphony merged the linked PR." || true
+            gh issue close "$ISSUE_NUM" --comment "✅ Conductor merged the linked PR." || true
           fi
 
   review-agent:
@@ -115,8 +115,8 @@ jobs:
       - name: Configure Git for retry
         if: env.AUTO_MERGE == 'false'
         run: |
-          git config user.name "Symphony Retry Agent 🔄"
-          git config user.email "symphony@users.noreply.github.com"
+          git config user.name "Conductor Retry Agent 🔄"
+          git config user.email "conductor@users.noreply.github.com"
 
       - name: Run Retry Agent
         if: env.AUTO_MERGE == 'false'

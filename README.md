@@ -1,4 +1,4 @@
-# 🎵 Symphony — Fully automated pipeline
+# 🎛️ Conductor — Fully automated pipeline
 
 > Multi-agent coding pipeline. Fully free. Your only manual step: create an issue.
 
@@ -18,6 +18,31 @@
 | Completion | Auto-merge + issue done | ✅ Fully automatic |
 
 **Your only manual step: create an issue.**
+
+---
+
+## Done
+
+- [x] Added `AGENTS.md` as the shared instruction source for coding and review.
+- [x] Added issue and pull request templates for agent-driven work.
+- [x] Added automatic Conductor label setup.
+- [x] Added issue auto-labeling with `agent-ready`.
+- [x] Added Coding Agent workflow to generate changes, commit them, push a branch, open a PR, and trigger review.
+- [x] Added Review Agent workflow with PR review, test awareness, auto-merge, retry dispatch, and issue completion.
+- [x] Added Retry Agent workflow path with a maximum of 3 attempts.
+- [x] Added VS Code tasks for triggering and inspecting Conductor work.
+- [x] Translated project documentation and agent-facing text to English.
+
+## ToDo
+
+- [ ] Add `GROQ_API_KEY` as a repository Actions secret.
+- [ ] Enable GitHub Actions read/write workflow permissions and PR approval permissions.
+- [ ] Customize `AGENTS.md` for the target project stack, structure, and test command.
+- [ ] Run the first end-to-end test with a small issue.
+- [ ] Verify repository auto-merge settings match the workflow expectations.
+- [ ] Add workflow linting, for example with `actionlint`, to catch YAML or GitHub expression issues.
+- [ ] Consider replacing `GITHUB_TOKEN` with a GitHub App or PAT if stricter workflow-trigger behavior is needed.
+- [ ] Review security boundaries before using the pipeline on sensitive repositories.
 
 ---
 
@@ -82,14 +107,14 @@ Name: `GROQ_API_KEY` · Value: your Groq key
 Update the tech stack, test command, and project structure for your project.
 
 Labels are created or updated automatically by the workflows:
-`agent-ready`, `in-progress`, `in-review`, `needs-work`, `symphony`, `symphony-approved`, `done`.
+`agent-ready`, `in-progress`, `in-review`, `needs-work`, `conductor`, `conductor-approved`, `done`.
 
 ---
 
 ## Codex VS Code — After 3 Failed Retries
 
 ```
-Ctrl+Shift+P → 🎵 Symphony: Open PRs
+Ctrl+Shift+P → 🎛️ Conductor: Open PRs
 → open the blocked PR in VS Code
 → start Codex in Agent (Full Access)
 → paste the review feedback

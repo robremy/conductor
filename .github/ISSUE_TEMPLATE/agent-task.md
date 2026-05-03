@@ -1,6 +1,6 @@
 ---
 name: 🤖 Agent Task
-about: Issue for Symphony Agent
+about: Issue for Conductor Agent
 title: "[TASK] "
 labels: ""
 assignees: ""
@@ -31,4 +31,4 @@ assignees: ""
 
 ---
 
-> Add the **`agent-ready`** label to start Symphony.
+> Add the **`agent-ready`** label to start Conductor.

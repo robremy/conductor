@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Symphony — Review Agent
+Conductor — Review Agent
 Reads a PR diff, reviews it using the AGENTS.md review criteria,
 and decides whether auto-merge is allowed.
 """
@@ -147,7 +147,7 @@ def main():
     # Read AGENTS.md
     agents_md = read_file("AGENTS.md")
 
-    system_prompt = f"""You are the Symphony Review Agent.
+    system_prompt = f"""You are the Conductor Review Agent.
 You review a Pull Request based on the review criteria in AGENTS.md.
 
 ## AGENTS.md (the review criteria section is the most important)
@@ -226,7 +226,7 @@ Review based on the AGENTS.md review criteria and return the JSON object."""
 
     # Compose PR comment
     comment_lines = [
-        f"## 🎵 Symphony Review Agent\n",
+        f"## 🎛️ Conductor Review Agent\n",
         f"**Verdict:** {'✅ APPROVED' if verdict == 'APPROVED' else '❌ CHANGES REQUESTED'}\n",
         f"**Auto-merge:** {'✅ Yes' if auto_merge else '❌ No'}\n",
         f"### Summary\n{summary}\n",
@@ -255,11 +255,11 @@ Review based on the AGENTS.md review criteria and return the JSON object."""
 
     # Update labels
     if auto_merge:
-        add_pr_label("symphony-approved")
+        add_pr_label("conductor-approved")
         remove_pr_label("needs-work")
     else:
         add_pr_label("needs-work")
-        remove_pr_label("symphony-approved")
+        remove_pr_label("conductor-approved")
 
     set_gha_env("AUTO_MERGE", "true" if auto_merge else "false")
     log("✅ Review Agent done")

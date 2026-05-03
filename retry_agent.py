@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Symphony — Retry Agent
+Conductor — Retry Agent
 Runs when the Review Agent blocks a PR.
 Reads the review feedback and improves the implementation.
 Max 3 retry attempts per issue.
@@ -79,14 +79,14 @@ def get_current_files():
 def get_retry_count():
     """Count how many retry comments are already on the PR."""
     comments = gh_get(f"/repos/{REPO}/issues/{PR_NUMBER}/comments")
-    return sum(1 for c in comments if "Symphony Retry Agent" in c.get("body", ""))
+    return sum(1 for c in comments if "Conductor Retry Agent" in c.get("body", ""))
 
 def get_review_feedback():
     """Fetch review feedback from PR comments."""
     comments = gh_get(f"/repos/{REPO}/issues/{PR_NUMBER}/comments")
     for comment in reversed(comments):
         body = comment.get("body", "")
-        if "Symphony Review Agent" in body and "CHANGES REQUESTED" in body:
+        if "Conductor Review Agent" in body and "CHANGES REQUESTED" in body:
             return body
     return ""
 
@@ -159,7 +159,7 @@ def main():
     if retry_count >= MAX_RETRIES:
         log(f"❌ Maximum retries ({MAX_RETRIES}) reached")
         gh_post(f"/repos/{REPO}/issues/{PR_NUMBER}/comments", {
-            "body": f"⛔ **Symphony Retry Agent**: Maximum of {MAX_RETRIES} retries reached.\n\nManual review required."
+            "body": f"⛔ **Conductor Retry Agent**: Maximum of {MAX_RETRIES} retries reached.\n\nManual review required."
         })
         set_gha_env("RETRY_OK", "false")
         raise SystemExit(0)
@@ -195,7 +195,7 @@ def main():
     current_files = get_current_files()
     agents_md = read_file("AGENTS.md")
 
-    system_prompt = f"""You are the Symphony Retry Agent.
+    system_prompt = f"""You are the Conductor Retry Agent.
 You improve an existing implementation based on review feedback.
 
 ## AGENTS.md
@@ -258,7 +258,7 @@ Fix all blocking issues and return the JSON object."""
 
     # Comment on PR
     gh_post(f"/repos/{REPO}/issues/{PR_NUMBER}/comments", {
-        "body": f"🔄 **Symphony Retry Agent** (attempt {retry_count + 1}/{MAX_RETRIES})\n\n"
+        "body": f"🔄 **Conductor Retry Agent** (attempt {retry_count + 1}/{MAX_RETRIES})\n\n"
                 f"**Analysis:** {result.get('analysis', '—')}\n\n"
                 f"**Tests:** {'✅ passed' if tests_ok else '⚠️ failed'}\n\n"
                 f"Review Agent will be triggered again."

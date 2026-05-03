@@ -1,4 +1,4 @@
-name: 🏷️ Symphony — Auto Label
+name: 🏷️ Conductor — Auto Label
 
 on:
   issues:
@@ -15,7 +15,7 @@ jobs:
       issues: write
 
     steps:
-      - name: Prepare Symphony labels
+      - name: Prepare Conductor labels
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
@@ -31,13 +31,13 @@ jobs:
             fi
           }
 
-          ensure_label "agent-ready" "22c55e" "Ready for the Symphony coding agent"
-          ensure_label "in-progress" "f59e0b" "Symphony is working on this issue"
-          ensure_label "in-review" "8b5cf6" "Symphony PR is under review"
-          ensure_label "needs-work" "ef4444" "Symphony found blocking review feedback"
-          ensure_label "symphony" "3b82f6" "Created by Symphony"
-          ensure_label "symphony-approved" "22c55e" "Approved by the Symphony review agent"
-          ensure_label "done" "6b7280" "Completed by Symphony"
+          ensure_label "agent-ready" "22c55e" "Ready for the Conductor coding agent"
+          ensure_label "in-progress" "f59e0b" "Conductor is working on this issue"
+          ensure_label "in-review" "8b5cf6" "Conductor PR is under review"
+          ensure_label "needs-work" "ef4444" "Conductor found blocking review feedback"
+          ensure_label "conductor" "3b82f6" "Created by Conductor"
+          ensure_label "conductor-approved" "22c55e" "Approved by the Conductor review agent"
+          ensure_label "done" "6b7280" "Completed by Conductor"
 
       - name: Label new issues as agent-ready
         env:
@@ -48,10 +48,10 @@ jobs:
           if [ "${{ github.event_name }}" = "issues" ]; then
             ISSUE_NUM="${{ github.event.issue.number }}"
 
-            # Skip if the issue already has a Symphony label
+            # Skip if the issue already has a Conductor label
             LABELS=$(gh issue view "$ISSUE_NUM" --json labels -q '.labels[].name' --repo "$REPO")
-            if echo "$LABELS" | grep -qE "agent-ready|in-progress|in-review|needs-work|done|symphony"; then
-              echo "Issue #$ISSUE_NUM already has a Symphony label — skip"
+            if echo "$LABELS" | grep -qE "agent-ready|in-progress|in-review|needs-work|done|conductor"; then
+              echo "Issue #$ISSUE_NUM already has a Conductor label — skip"
               exit 0
             fi
 
@@ -66,7 +66,7 @@ jobs:
             echo "✅ Issue #$ISSUE_NUM labeled as agent-ready"
 
           else
-            # Cron: pick up all issues without a Symphony label
+            # Cron: pick up all issues without a Conductor label
             echo "🔍 Looking for unlabeled issues..."
             gh issue list \
               --state open \
@@ -76,15 +76,15 @@ jobs:
 import json, sys, subprocess
 
 issues = json.load(sys.stdin)
-symphony_labels = {'agent-ready','in-progress','in-review','needs-work','done','symphony','symphony-approved'}
+conductor_labels = {'agent-ready','in-progress','in-review','needs-work','done','conductor','conductor-approved'}
 
 for issue in issues:
     num = issue['number']
     labels = {l['name'] for l in issue.get('labels', [])}
     body = issue.get('body') or ''
 
-    # Skip if it already has a Symphony label
-    if labels & symphony_labels:
+    # Skip if it already has a Conductor label
+    if labels & conductor_labels:
         continue
 
     # Skip if there is no description

@@ -1,4 +1,4 @@
-name: 🎵 Symphony — Coding Agent
+name: 🎛️ Conductor — Coding Agent
 
 on:
   issues:
@@ -43,7 +43,7 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Prepare Symphony labels
+      - name: Prepare Conductor labels
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
@@ -59,13 +59,13 @@ jobs:
             fi
           }
 
-          ensure_label "agent-ready" "22c55e" "Ready for the Symphony coding agent"
-          ensure_label "in-progress" "f59e0b" "Symphony is working on this issue"
-          ensure_label "in-review" "8b5cf6" "Symphony PR is under review"
-          ensure_label "needs-work" "ef4444" "Symphony found blocking review feedback"
-          ensure_label "symphony" "3b82f6" "Created by Symphony"
-          ensure_label "symphony-approved" "22c55e" "Approved by the Symphony review agent"
-          ensure_label "done" "6b7280" "Completed by Symphony"
+          ensure_label "agent-ready" "22c55e" "Ready for the Conductor coding agent"
+          ensure_label "in-progress" "f59e0b" "Conductor is working on this issue"
+          ensure_label "in-review" "8b5cf6" "Conductor PR is under review"
+          ensure_label "needs-work" "ef4444" "Conductor found blocking review feedback"
+          ensure_label "conductor" "3b82f6" "Created by Conductor"
+          ensure_label "conductor-approved" "22c55e" "Approved by the Conductor review agent"
+          ensure_label "done" "6b7280" "Completed by Conductor"
 
       - name: Install npm packages
         run: |
@@ -83,8 +83,8 @@ jobs:
 
       - name: Configure Git
         run: |
-          git config user.name "Symphony Coding Agent 🎵"
-          git config user.email "symphony@users.noreply.github.com"
+          git config user.name "Conductor Coding Agent 🎛️"
+          git config user.email "conductor@users.noreply.github.com"
 
       - name: Commit and push
         run: |
@@ -109,7 +109,7 @@ jobs:
             --body "$(cat _pr_body.txt)" \
             --base main \
             --head "$BRANCH_NAME" \
-            --label "symphony")
+            --label "conductor")
           PR_NUMBER=$(gh pr view "$PR_URL" --json number -q .number)
           echo "PR_NUMBER=$PR_NUMBER" >> "$GITHUB_ENV"
 

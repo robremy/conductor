@@ -26,7 +26,7 @@ Full-stack web application.
 ├── shared/            # Shared types and utilities
 ├── tests/             # Tests
 └── .github/
-    └── workflows/     # Symphony agent workflows
+    └── workflows/     # Conductor agent workflows
 ```
 
 ## Test Command
@@ -122,4 +122,4 @@ All of the following must be true:
 1. No blocking issues found by the review agent
 2. CI checks pass (tests green)
 3. Branch has no conflicts with main
-4. PR was created by the Symphony coding agent
+4. PR was created by the Conductor coding agent

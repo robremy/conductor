@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Symphony — Coding Agent
+Conductor — Coding Agent
 Reads a GitHub Issue, writes the implementation, and opens a PR.
 """
 
@@ -132,7 +132,7 @@ def run_tests(command):
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
-    log("🎵 Coding Agent started")
+    log("🎛️ Coding Agent started")
 
     issue  = gh_get(f"/repos/{REPO}/issues/{ISSUE_NUMBER}")
     title  = issue["title"]
@@ -140,12 +140,12 @@ def main():
     branch = f"feat/GH-{ISSUE_NUMBER}-{slugify(title)}"
 
     log(f"📋 Issue #{ISSUE_NUMBER}: {title}")
-    comment(f"🎵 **Symphony Coding Agent started**\n\nProcessing issue `#{ISSUE_NUMBER}`.\nI will open a PR when the implementation is ready.")
+    comment(f"🎛️ **Conductor Coding Agent started**\n\nProcessing issue `#{ISSUE_NUMBER}`.\nI will open a PR when the implementation is ready.")
 
     agents_md = read_file("AGENTS.md")
     structure = get_repo_structure()
 
-    system_prompt = f"""You are Symphony, an autonomous coding agent.
+    system_prompt = f"""You are Conductor, an autonomous coding agent.
 You implement GitHub Issues fully and independently.
 
 ## Project Instructions (AGENTS.md)
