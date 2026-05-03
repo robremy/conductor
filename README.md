@@ -45,6 +45,7 @@ Review Agent reviews diff
 
 ```
 /
+├── .gitignore                       ← Ignores generated local files
 ├── AGENTS.md                        ← Single source of truth
 ├── coding_agent.py                  ← Writes code + opens PR
 ├── review_agent.py                  ← Reviews PR
