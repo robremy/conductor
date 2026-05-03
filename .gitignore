@@ -1,0 +1,8 @@
+_commit_message.txt
+_pr_title.txt
+_pr_body.txt
+.codex_prompt.txt
+__pycache__/
+*.pyc
+.env
+node_modules/

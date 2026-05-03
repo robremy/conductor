@@ -1,0 +1,56 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "🎵 Symphony: Trigger Issue",
+      "type": "shell",
+      "command": "gh issue edit ${input:issueNumber} --add-label agent-ready",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "🎵 Symphony: Status",
+      "type": "shell",
+      "command": "echo '=== Agent Ready ===' && gh issue list --label agent-ready && echo '=== In Progress ===' && gh issue list --label in-progress && echo '=== Open PRs ===' && gh pr list --label symphony",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "🎵 Symphony: Open GitHub Board",
+      "type": "shell",
+      "command": "gh browse --projects",
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "🎵 Symphony: Open PRs",
+      "type": "shell",
+      "command": "gh pr list --label symphony",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "issueNumber",
+      "type": "promptString",
+      "description": "Issue nummer (bijv. 42)",
+      "default": ""
+    }
+  ]
+}

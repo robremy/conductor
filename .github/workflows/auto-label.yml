@@ -1,0 +1,98 @@
+name: 🏷️ Symphony — Auto Label
+
+on:
+  issues:
+    types: [opened, reopened]
+  schedule:
+    # Elke 15 minuten nieuwe issues oppikken
+    - cron: "*/15 * * * *"
+
+jobs:
+  auto-label:
+    runs-on: ubuntu-latest
+
+    permissions:
+      issues: write
+
+    steps:
+      - name: Symphony labels klaarzetten
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          ensure_label() {
+            name="$1"
+            color="$2"
+            description="$3"
+            if gh label view "$name" --repo "$REPO" >/dev/null 2>&1; then
+              gh label edit "$name" --color "$color" --description "$description" --repo "$REPO"
+            else
+              gh label create "$name" --color "$color" --description "$description" --repo "$REPO"
+            fi
+          }
+
+          ensure_label "agent-ready" "22c55e" "Klaar voor Symphony coding agent"
+          ensure_label "in-progress" "f59e0b" "Symphony werkt aan dit issue"
+          ensure_label "in-review" "8b5cf6" "Symphony PR wordt beoordeeld"
+          ensure_label "needs-work" "ef4444" "Symphony vond blokkerende review feedback"
+          ensure_label "symphony" "3b82f6" "Aangemaakt door Symphony"
+          ensure_label "symphony-approved" "22c55e" "Goedgekeurd door Symphony review agent"
+          ensure_label "done" "6b7280" "Afgerond door Symphony"
+
+      - name: Label nieuwe issues als agent-ready
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          # Bij direct issue event: label meteen
+          if [ "${{ github.event_name }}" = "issues" ]; then
+            ISSUE_NUM="${{ github.event.issue.number }}"
+
+            # Skip als issue al een symphony label heeft
+            LABELS=$(gh issue view "$ISSUE_NUM" --json labels -q '.labels[].name' --repo "$REPO")
+            if echo "$LABELS" | grep -qE "agent-ready|in-progress|in-review|needs-work|done|symphony"; then
+              echo "Issue #$ISSUE_NUM heeft al een Symphony label — skip"
+              exit 0
+            fi
+
+            # Skip als issue handmatig aangemaakt is zonder Agent Task template
+            # (check of body leeg is)
+            BODY=$(gh issue view "$ISSUE_NUM" --json body -q '.body' --repo "$REPO")
+            if [ -z "$BODY" ] || [ "$BODY" = "null" ]; then
+              echo "Issue #$ISSUE_NUM heeft geen beschrijving — skip"
+              exit 0
+            fi
+
+            gh issue edit "$ISSUE_NUM" --add-label "agent-ready" --repo "$REPO"
+            echo "✅ Issue #$ISSUE_NUM gelabeld als agent-ready"
+
+          else
+            # Cron: pak alle issues zonder symphony label
+            echo "🔍 Zoeken naar niet-gelabelde issues..."
+            gh issue list \
+              --state open \
+              --json number,labels,body \
+              --repo "$REPO" | \
+            python3 -c "
+import json, sys, subprocess
+
+issues = json.load(sys.stdin)
+symphony_labels = {'agent-ready','in-progress','in-review','needs-work','done','symphony','symphony-approved'}
+
+for issue in issues:
+    num = issue['number']
+    labels = {l['name'] for l in issue.get('labels', [])}
+    body = issue.get('body') or ''
+
+    # Skip als al een symphony label heeft
+    if labels & symphony_labels:
+        continue
+
+    # Skip als geen beschrijving
+    if not body.strip():
+        continue
+
+    subprocess.run(['gh', 'issue', 'edit', str(num), '--add-label', 'agent-ready', '--repo', '$REPO'])
+    print(f'✅ Issue #{num} gelabeld als agent-ready')
+"
+          fi

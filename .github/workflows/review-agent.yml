@@ -1,0 +1,152 @@
+name: 🔍 Symphony — Review Agent + Auto-merge + Retry
+
+on:
+  pull_request:
+    types: [opened, synchronize, closed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Pull request nummer"
+        required: true
+      head_ref:
+        description: "Branchnaam van de PR"
+        required: true
+
+jobs:
+  mark-issue-done:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    permissions:
+      issues: write
+
+    steps:
+      - name: Issue sluiten na merge
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          ISSUE_NUM=$(echo "$PR_BODY" | grep -oP '(?<=Closes #)\d+' | head -1)
+          if [ -n "$ISSUE_NUM" ]; then
+            gh issue edit "$ISSUE_NUM" --remove-label "in-progress" || true
+            gh issue edit "$ISSUE_NUM" --remove-label "needs-work" || true
+            gh issue edit "$ISSUE_NUM" --add-label "done" || true
+            gh issue close "$ISSUE_NUM" --comment "✅ Symphony heeft de gekoppelde PR gemerged." || true
+          fi
+
+  review-agent:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event.action != 'closed' &&
+        (
+          startsWith(github.head_ref, 'feat/GH-') ||
+          startsWith(github.head_ref, 'fix/GH-') ||
+          startsWith(github.head_ref, 'docs/GH-') ||
+          startsWith(github.head_ref, 'test/GH-')
+        )
+      )
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      actions: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.head_ref || github.head_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Python setup
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Installeer dependencies
+        run: pip install requests --quiet
+
+      - name: Node.js setup
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Installeer npm packages
+        run: |
+          if [ -f package.json ]; then npm ci --silent; fi
+          if [ -f frontend/package.json ]; then cd frontend && npm ci --silent; fi
+          if [ -f backend/package.json ]; then cd backend && npm ci --silent; fi
+
+      - name: Tests draaien
+        run: |
+          if [ -f package.json ]; then
+            npm test && echo "TESTS_PASS=true" >> $GITHUB_ENV || echo "TESTS_PASS=false" >> $GITHUB_ENV
+          else
+            echo "TESTS_PASS=true" >> $GITHUB_ENV
+          fi
+
+      - name: Review Agent uitvoeren
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event_name == 'workflow_dispatch' && inputs.pr_number || github.event.pull_request.number }}
+          TESTS_PASS: ${{ env.TESTS_PASS }}
+        run: python review_agent.py
+
+      - name: Auto-merge
+        if: env.AUTO_MERGE == 'true' && env.TESTS_PASS == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event_name == 'workflow_dispatch' && inputs.pr_number || github.event.pull_request.number }}
+        run: |
+          gh pr merge "$PR_NUMBER" \
+            --squash \
+            --auto \
+            --delete-branch \
+            --subject "$(gh pr view $PR_NUMBER --json title -q .title)"
+
+      - name: Git configureren voor retry
+        if: env.AUTO_MERGE == 'false'
+        run: |
+          git config user.name "Symphony Retry Agent 🔄"
+          git config user.email "symphony@users.noreply.github.com"
+
+      - name: Retry Agent uitvoeren
+        if: env.AUTO_MERGE == 'false'
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event_name == 'workflow_dispatch' && inputs.pr_number || github.event.pull_request.number }}
+        run: python retry_agent.py
+
+      - name: Retry commit en push
+        if: env.AUTO_MERGE == 'false' && env.RETRY_OK == 'true'
+        run: |
+          git add --all
+          if git diff --cached --quiet; then
+            echo "Geen wijzigingen na retry."
+            echo "RETRY_PUSHED=false" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          git commit -F _commit_message.txt
+          git push origin HEAD
+          echo "RETRY_PUSHED=true" >> "$GITHUB_ENV"
+
+      - name: Review opnieuw starten na retry
+        if: env.AUTO_MERGE == 'false' && env.RETRY_OK == 'true' && env.RETRY_PUSHED == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event_name == 'workflow_dispatch' && inputs.pr_number || github.event.pull_request.number }}
+          HEAD_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.head_ref || github.head_ref }}
+        run: |
+          gh workflow run review-agent.yml \
+            -f pr_number="$PR_NUMBER" \
+            -f head_ref="$HEAD_REF"
