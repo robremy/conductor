@@ -21,6 +21,82 @@
 
 ---
 
+## Layer Status and Testing
+
+### 1. Configuration
+**Component:** `AGENTS.md`  
+**Status:** File exists but requires customization for target project stack, structure, and test commands.  
+**Test Plan:** Manually review AGENTS.md content and verify it matches the project's requirements. Run a syntax check if applicable.
+
+### 2. Trigger
+**Component:** Auto-label workflow + automatic label setup  
+**Status:** Workflow files exist, but GitHub Actions permissions need to be enabled for read/write and PR approvals.  
+**Test Plan:** Create a test issue and verify it gets automatically labeled with "agent-ready" within 15 minutes.
+
+### 3. Orchestration
+**Component:** GitHub Actions  
+**Status:** Workflows are configured and present.  
+**Test Plan:** Check workflow run history in GitHub Actions tab to ensure workflows can be triggered.
+
+### 4. Coding Agent
+**Component:** `coding_agent.py`  
+**Status:** Code implemented and ready.  
+**Test Plan:** Trigger the coding agent workflow manually (if possible) or via a labeled issue, and verify it generates code and opens a PR.
+
+### 5. Review Agent
+**Component:** `review_agent.py`  
+**Status:** Code implemented and ready.  
+**Test Plan:** After a PR is opened by the coding agent, verify the review agent runs and provides feedback or approves.
+
+### 6. Refinement
+**Component:** `retry_agent.py` (max 3x)  
+**Status:** Code implemented with retry logic.  
+**Test Plan:** Force a review rejection and verify the retry agent improves the code up to 3 times before stopping.
+
+### 7. Version Control
+**Component:** Git + GitHub  
+**Status:** Repository is set up with Git.  
+**Test Plan:** Verify commits, branches, and pushes work correctly during the pipeline execution.
+
+### 8. Completion
+**Component:** Auto-merge + issue done  
+**Status:** Auto-merge settings need verification to match workflow expectations.  
+**Test Plan:** Ensure a successfully reviewed PR auto-merges and closes the original issue.
+
+---
+
+## Getting Started with a Project Idea
+
+When you have only a project idea and no existing codebase:
+
+### 1. Create a New Repository
+- Create a new GitHub repository for your project
+- Clone it to your local machine
+
+### 2. Add Conductor Workflow
+- Copy the `.github/workflows/` directory from this Conductor repository to your new project
+- This enables the automated pipeline
+
+### 3. Create Your First Issue
+- Open a GitHub issue describing your initial feature or component
+- Label it with `agent-ready` (or wait for auto-labeling)
+- Conductor will detect missing components and prompt you to add them:
+  - **AGENTS.md**: Project configuration (created automatically with guidance)
+  - **GROQ_API_KEY**: API key for AI processing (setup instructions provided)
+  - **Permissions**: GitHub Actions permissions (configuration steps given)
+
+### 4. Follow the Prompts
+- When Conductor identifies missing requirements, follow the issue comments
+- Each prompt provides specific instructions for the missing component
+- No upfront setup required - everything is guided on-demand
+
+### 5. Iterate
+- Create additional issues for new features
+- The pipeline handles coding, testing, and merging automatically
+- Manual intervention only for complex requirements or after 3 failed retries
+
+---
+
 ## Done
 
 - [x] Added `AGENTS.md` as the shared instruction source for coding and review.
@@ -64,9 +140,28 @@ Review Agent reviews diff
                    → after 3x: manual review
 ```
 
----
+## Testing Conductor
 
-## Files
+### Startup Test
+Test the Conductor initialization and prompting system locally:
+
+```bash
+python test_startup.py
+```
+
+This script simulates:
+- ✅ API key validation
+- ✅ Required file checks (AGENTS.md)
+- ✅ Project type detection (new vs existing)
+- ✅ Prompt generation for missing components
+
+### Test Scenarios
+- **Normal operation**: All checks pass, shows code generation would proceed
+- **Missing API key**: Shows the guidance prompt for setting up GROQ_API_KEY
+- **Missing AGENTS.md**: Shows the template and instructions for project configuration
+- **New project**: Would detect empty repo and generate initial structure
+
+---
 
 ```
 /
@@ -89,21 +184,49 @@ Review Agent reviews diff
 
 ---
 
-## One-Time Setup (5 minutes)
+## One-Time Setup (Optional - Guided Setup Available)
 
-### 1. Create a Groq API key (free)
+Conductor can be set up automatically when you first use it. However, for a smoother experience, you can pre-configure these settings:
+
+### Automated Setup (Recommended)
+
+Run the automated setup script:
+
+```powershell
+# From your project root (where Conductor workflows are copied)
+.\setup_conductor.ps1
+```
+
+This script will:
+- ✅ Check GitHub CLI installation and authentication
+- ✅ Open Groq console in your browser
+- ✅ Guide you through API key creation
+- ✅ Automatically set the `GROQ_API_KEY` secret
+- ✅ Configure GitHub Actions permissions
+- ✅ Verify repository setup
+
+### Guided Setup (On-Demand)
+
+If you prefer minimal upfront setup:
+- Just copy the `.github/workflows/` directory
+- Create your first issue
+- Follow the prompts in issue comments for any missing requirements
+
+### Manual Setup (Alternative)
+
+#### 1. Create a Groq API key (free)
 Go to [console.groq.com](https://console.groq.com) and create an API key.
 
-### 2. Add the secret
+#### 2. Add the secret
 **Settings → Secrets and variables → Actions → New repository secret**
 Name: `GROQ_API_KEY` · Value: your Groq key
 
-### 3. Configure Actions permissions
+#### 3. Configure Actions permissions
 **Settings → Actions → General → Workflow permissions**
 - ✅ Read and write permissions
 - ✅ Allow GitHub Actions to create and approve pull requests
 
-### 4. Customize AGENTS.md
+#### 4. Customize AGENTS.md
 Update the tech stack, test command, and project structure for your project.
 
 Labels are created or updated automatically by the workflows:

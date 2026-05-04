@@ -61,6 +61,13 @@ def get_repo_structure():
     lines = sorted(lines)
     return "\n".join(lines[:200])
 
+def detect_new_project(structure):
+    """Detect if this is a new project by checking if only Conductor files exist."""
+    lines = structure.split('\n')
+    conductor_files = {'.github/', 'AGENTS.md', 'README.md', '.gitignore', '.vscode/'}
+    non_conductor = [line for line in lines if not any(cf in line for cf in conductor_files)]
+    return len(non_conductor) == 0
+
 def set_gha_env(key, value):
     with open(GITHUB_ENV, "a") as f:
         f.write(f"{key}={value}\n")
@@ -134,6 +141,18 @@ def run_tests(command):
 def main():
     log("🎛️ Coding Agent started")
 
+    # Check for required secrets
+    if not GROQ_API_KEY or GROQ_API_KEY == "":
+        comment("❌ **Missing GROQ_API_KEY**\n\nTo use Conductor, you need a Groq API key:\n\n1. Go to [console.groq.com](https://console.groq.com)\n2. Create a new API key\n3. Add it as `GROQ_API_KEY` in repository secrets\n4. Re-trigger this issue\n\nOnce set, I'll continue processing.")
+        log("Missing GROQ_API_KEY - exiting")
+        return
+
+    # Check for required files
+    if not Path("AGENTS.md").exists():
+        comment("❌ **Missing AGENTS.md**\n\nConductor requires an `AGENTS.md` file to understand your project.\n\nPlease create `AGENTS.md` in your repository root with project details, tech stack, and test commands.\n\nExample:\n```\n## Project\nMy awesome project\n\n## Techstack\n- Backend: Python\n- Tests: pytest\n\n## Test Command\npytest\n```\n\nOnce created, re-trigger this issue.")
+        log("Missing AGENTS.md - exiting")
+        return
+
     issue  = gh_get(f"/repos/{REPO}/issues/{ISSUE_NUMBER}")
     title  = issue["title"]
     body   = issue.get("body") or "(no description)"
@@ -144,9 +163,18 @@ def main():
 
     agents_md = read_file("AGENTS.md")
     structure = get_repo_structure()
+    is_new_project = detect_new_project(structure)
+
+    if is_new_project:
+        comment("🎛️ **New Project Detected**\n\nThis appears to be a new project. I will generate the complete initial project structure based on AGENTS.md and your issue description.")
+        project_status = "This is a NEW PROJECT. Generate the complete initial project structure, including all necessary files, configuration, dependencies, and basic implementation. Follow AGENTS.md specifications exactly."
+    else:
+        project_status = "This is an EXISTING PROJECT. Implement the requested changes while preserving existing code and structure."
 
     system_prompt = f"""You are Conductor, an autonomous coding agent.
 You implement GitHub Issues fully and independently.
+
+{project_status}
 
 ## Project Instructions (AGENTS.md)
 {agents_md}

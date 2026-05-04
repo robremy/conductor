@@ -35,7 +35,39 @@ Full-stack web application.
 npm test
 ```
 
-<!-- Customize: npm test / pnpm test / pytest / etc. -->
+## Sensitive Data Handling
+
+All sensitive data (API keys, passwords, tokens, credentials) must be stored securely in the Windows SecretStore vault.
+
+### Storage Requirements
+- Use PowerShell SecretStore module for credential management
+- Store sensitive values as secrets in a named vault (e.g., "FitbitHeartbeat")
+- Never hardcode sensitive data in source code
+- Access secrets programmatically with proper error handling
+
+### Vault Configuration
+- Authentication: Password-based
+- Interaction: Prompt for vault password when accessing secrets
+- Scope: CurrentUser
+
+### Code Patterns
+When implementing features that require sensitive data:
+- Include PowerShell scripts for vault setup and access
+- Prompt user for vault password if not already unlocked
+- Handle authentication failures gracefully
+- Use secure string types for password input
+
+### Example Implementation
+```powershell
+# Check if vault is unlocked
+$vault = Get-SecretVault -Name "FitbitHeartbeat"
+if (-not (Test-SecretVault -Name $vault.Name)) {
+    Unlock-SecretVault -Name $vault.Name
+}
+
+# Retrieve sensitive data
+$clientId = Get-Secret -Name "FITBIT_CLIENT_ID" -Vault $vault.Name
+```
 
 ---
 
