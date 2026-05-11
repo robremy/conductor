@@ -1,157 +1,18 @@
 # AGENTS.md
-# Single source of truth for the coding agent and review agent.
-# Automatically read by both GitHub Actions workflows.
 
----
+## Goal
 
-## Project
+Input a feature request and output working code.
 
-Full-stack web application.
+## Rules
 
-## Techstack
-
-<!-- Customize for your project -->
-- **Frontend**: React / Vue / Svelte
-- **Backend**: Node/Express / FastAPI / Laravel
-- **Database**: PostgreSQL / MongoDB
-- **Tests**: Vitest / Jest / Pytest
-- **Package manager**: npm / pnpm / pip
-
-## Project Structure
-
-```
-/
-├── frontend/          # Client-side code
-├── backend/           # Server-side code
-├── shared/            # Shared types and utilities
-├── tests/             # Tests
-└── .github/
-    └── workflows/     # Conductor agent workflows
-```
-
-## Test Command
-
-```bash
-npm test
-```
-
-## Sensitive Data Handling
-
-All sensitive data (API keys, passwords, tokens, credentials) must be stored securely in the Windows SecretStore vault.
-
-### Storage Requirements
-- Use PowerShell SecretStore module for credential management
-- Store sensitive values as secrets in a named vault (e.g., "FitbitHeartbeat")
-- Never hardcode sensitive data in source code
-- Access secrets programmatically with proper error handling
-
-### Vault Configuration
-- Authentication: Password-based
-- Interaction: Prompt for vault password when accessing secrets
-- Scope: CurrentUser
-
-### Code Patterns
-When implementing features that require sensitive data:
-- Include PowerShell scripts for vault setup and access
-- Prompt user for vault password if not already unlocked
-- Handle authentication failures gracefully
-- Use secure string types for password input
-
-### Example Implementation
-```powershell
-# Check if vault is unlocked
-$vault = Get-SecretVault -Name "FitbitHeartbeat"
-if (-not (Test-SecretVault -Name $vault.Name)) {
-    Unlock-SecretVault -Name $vault.Name
-}
-
-# Retrieve sensitive data
-$clientId = Get-Secret -Name "FITBIT_CLIENT_ID" -Vault $vault.Name
-```
-
----
-
-## Coding Agent Workflow
-
-### Branch
-
-```
-feat/GH-{number}-{description}
-fix/GH-{number}-{description}
-docs/GH-{number}-{description}
-test/GH-{number}-{description}
-```
-
-### Implementation Order
-
-1. Backend (routes, services, database)
-2. Frontend (components, state, UI)
-3. Tests
-4. Documentation when applicable
-
-### Coding Rules
-
-- Only change files needed for this issue
-- Follow existing code style and naming
-- Do not add new dependencies without an explicit reason in the issue
-- No console.log or debug code
-- No refactoring outside the scope of the issue
-
-### Commit Format
-
-```
-{type}(GH-{number}): {description}
-
-- What was done (bullet)
-- Another bullet if needed
-- Closes #{number}
-```
-
-Types: `feat` `fix` `refactor` `docs` `test` `chore`
-
-### PR Description Always Includes
-
-- What does this PR do?
-- How to test?
-- `Closes #{number}`
-
-### Definition Of Done
-
-- [ ] Functionality works as described in the issue
-- [ ] All existing tests pass
-- [ ] New tests written for new logic
-- [ ] No console.log or debug code
-- [ ] PR opened and linked to the issue
-
----
-
-## Review criteria
-
-This section is used by the review agent to decide whether a PR can be merged.
-
-### Blocking Issues (No Auto-Merge)
-
-- Failing tests
-- Missing tests for new logic
-- Functionality that does not match the issue
-- Changes outside the scope of the issue
-- Console.log or debug code present
-- New dependencies without a reason
-- Syntax errors or obvious bugs
-- Merge conflicts
-
-### Non-Blocking Remarks (Auto-Merge Allowed)
-
-- Style preference (naming, formatting)
-- Suggestions for a better implementation
-- Missing documentation for small changes
-- Small optimizations
-
-### Auto-Merge Conditions
-
-All of the following must be true:
-
-1. No blocking issues found by the review agent
-2. CI checks pass (tests green)
-3. Branch has no conflicts with main
-4. PR was created by the Conductor coding agent
+- Keep changes small and complete.
+- Follow existing project style.
+- Run tests when available.
+- Add tests for new behavior when useful.
+- Avoid new dependencies unless needed.
+- Never hardcode secrets.
+- Record one lesson after delivery.
+- Record completed feature requests in `COMPLETED.md`.
+- Use lessons in the next request.
+- Ask only when blocked.
